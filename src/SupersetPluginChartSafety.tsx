@@ -23,11 +23,21 @@ import { Select } from 'antd';
 import { SupersetPluginChartSafetyProps } from './types';
 import type { CustomSeriesRenderItemReturn } from 'echarts';
 import { time } from 'echarts/core';
+
+// Update the Styles component
 const Styles = styled.div`
+  height: ${({ height }) => height}px;
+  width: ${({ width }) => width}px;
+  
   .calendar-controls {
     margin-bottom: 16px;
     display: flex;
-    justify-content: flex-end;
+    justify-content: center;
+  }
+
+  .chart-container {
+    height: 100%;
+    min-height: 500px;
   }
 `;
 
@@ -73,75 +83,15 @@ export default function SupersetPluginChartSafety(props: SupersetPluginChartSafe
   const { data, height, width } = props;
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
 
-  const getMonthRange = (month) => {
-    const year = new Date().getFullYear();
-    const startDate = new Date(year, month, 1);
-    const endDate = new Date(year, month + 1, 0);
-    return [startDate.toISOString().split('T')[0], endDate.toISOString().split('T')[0]];
-  };
+  const data1 = [['2025-02-24', { incidents: 1, risks: 1 }]]
 
-  const option2 = {
+  const option = {
     tooltip: {
       formatter: (params) => {
         const [date, { incidents, risks }] = params.data;
         return `Date: ${date}<br/>Incidents: ${incidents}, Risks: ${risks}`;
       }
     },
-    calendar: {
-      top: 'center',
-      left: 'center',
-      cellSize: ['auto', 40],
-      range: getMonthRange(selectedMonth),
-      itemStyle: {
-        borderWidth: 0.5
-      },
-      splitLine: {
-        show: true,
-        lineStyle: {
-          width: 1,
-          type: 'solid'
-        }
-      },
-      yearLabel: { show: false },
-      monthLabel: {
-        show: true,
-        formatter: '{MMM}'
-      },
-      dayLabel: {
-        firstDay: 1,
-        nameMap: ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
-      }
-    },
-    series: {
-      type: 'custom',
-      coordinateSystem: 'calendar',
-      renderItem: (params, api) => {
-        const cellPoint = api.coord(api.value(0));
-        const cellWidth = params.coordSys.cellWidth;
-        const cellHeight = params.coordSys.cellHeight;
-        const value = api.value(2);
-
-        const isUpper = api.value(1) === 0.75;
-        const y = isUpper ? cellPoint[1] : cellPoint[1] + cellHeight / 2;
-        const height = cellHeight / 2;
-
-        return {
-          type: 'rect',
-          shape: {
-            x: cellPoint[0],
-            y: y,
-            width: cellWidth,
-            height: height
-          },
-          style: api.style()
-        };
-      },
-      data: processData(data, selectedMonth)
-    }
-  };
-
-  const option = {
-    tooltip: {},
     calendar: [
       {
         left: 'center',
@@ -151,12 +101,14 @@ export default function SupersetPluginChartSafety(props: SupersetPluginChartSafe
         orient: 'vertical',
         dayLabel: {
           firstDay: 1,
-          nameMap: 'cn'
+          margin: 10,
+          nameMap: ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
         },
         monthLabel: {
           show: true
         },
-        range: '2025-02'
+        range: `2025-${selectedMonth + 1}`,
+        layoutScheme: 'month'
       }
     ],
     series: [
@@ -211,6 +163,7 @@ export default function SupersetPluginChartSafety(props: SupersetPluginChartSafe
                   x: x - 15,
                   y: y - 15,
                   // text: time.format('dd', cellPoint, 'en'),
+                  text: new Date(api.value(0)).getDate(),
                   fill: 'black',
                   textFont: api.font({ fontSize: 30 })
                 }
@@ -221,16 +174,34 @@ export default function SupersetPluginChartSafety(props: SupersetPluginChartSafe
           return group;
         },
         dimensions: [undefined, { type: 'ordinal' }],
-        data: [['2025-02-24', { incidents: 1, risks: 1 }]]
+        data: filteredData
       }
     ]
   };
 
+  // Update the return statement
   return (
-    <ReactECharts
-      option={option}
-      style={{ height: 'calc(100% - 48px)', width: '100%' }}
-      opts={{ renderer: 'canvas' }}
-    />
+    <Styles height={height} width={width}>
+      <div className="calendar-controls">
+        <Select
+          value={selectedMonth}
+          onChange={setSelectedMonth}
+          style={{ width: 120 }}
+        >
+          {months.map((month, index) => (
+            <Select.Option key={index} value={index}>
+              {month}
+            </Select.Option>
+          ))}
+        </Select>
+      </div>
+      <div className="chart-container">
+        <ReactECharts
+          option={option}
+          style={{ height: '100%', width: '100%' }}
+          opts={{ renderer: 'canvas' }}
+        />
+      </div>
+    </Styles>
   );
 }
