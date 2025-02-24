@@ -39,6 +39,6 @@ export type SupersetPluginChartSafetyQueryFormData = QueryFormData &
 
 export type SupersetPluginChartSafetyProps = SupersetPluginChartSafetyStylesProps &
   SupersetPluginChartSafetyCustomizeProps & {
-    data: TimeseriesDataRecord[];
+    data: TimeseriesDataRecord[] | { date: number, incidents: number, risks: number }[];
     // add typing here for the props you pass in from transformProps.ts!
   };

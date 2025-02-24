@@ -17,15 +17,18 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import { styled, t } from '@superset-ui/core';
+import { styled } from '@superset-ui/core';
 import ReactECharts from 'echarts-for-react';
 import { Select } from 'antd';
 import { SupersetPluginChartSafetyProps } from './types';
-import type { CustomSeriesRenderItemReturn } from 'echarts';
-import { time } from 'echarts/core';
+import { type CustomSeriesRenderItemReturn } from 'echarts';
 
-// Update the Styles component
-const Styles = styled.div`
+interface StylesProps {
+  height: number;
+  width: number;
+}
+
+const Styles = styled.div<StylesProps>`
   height: ${({ height }) => height}px;
   width: ${({ width }) => width}px;
   
@@ -46,48 +49,32 @@ const months = [
   'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
-const processData = (data, selectedMonth) => {
-  const calendarData = [];
-  const currentYear = new Date().getFullYear();
+export default function SupersetPluginChartSafety(props: SupersetPluginChartSafetyProps) {
+  const { data, height, width } = props;
+  const [year, setYear] = useState(new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
 
-  data.forEach(item => {
-    const itemDate = new Date(item.date);
-    // Only process data for selected month
-    if (itemDate.getMonth() === selectedMonth) {
+  const mapDataToChartDataFormat = (data: { date: number, incidents: number, risks: number }[]) => {
+    const res: [number, { incidents: number, risks: number }][] = [];
+    data.forEach(item => {
       const date = item.date;
+      if (new Date(date).getFullYear() !== year) {
+        return
+      }
+      if (new Date(date).getMonth() !== selectedMonth) {
+        return
+      }
       const incidents = item.incidents || 0;
       const risks = item.risks || 0;
 
-      calendarData.push({
-        date,
-        value: [date, 0.75, incidents > 0 ? 1 : 0],
-        itemStyle: {
-          color: incidents > 0 ? '#ff4d4f' : '#52c41a'
-        }
-      });
-
-      calendarData.push({
-        date,
-        value: [date, 0.25, risks > 0 ? 1 : 0],
-        itemStyle: {
-          color: risks > 0 ? '#faad14' : '#52c41a'
-        }
-      });
-    }
-  });
-
-  return calendarData;
-};
-
-export default function SupersetPluginChartSafety(props: SupersetPluginChartSafetyProps) {
-  const { data, height, width } = props;
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
-
-  const data1 = [['2025-02-24', { incidents: 1, risks: 1 }]]
+      res.push([date, { incidents, risks }]);
+    });
+    return res;
+  }
 
   const option = {
     tooltip: {
-      formatter: (params) => {
+      formatter: (params: any) => {
         const [date, { incidents, risks }] = params.data;
         return `Date: ${date}<br/>Incidents: ${incidents}, Risks: ${risks}`;
       }
@@ -107,7 +94,7 @@ export default function SupersetPluginChartSafety(props: SupersetPluginChartSafe
         monthLabel: {
           show: true
         },
-        range: `2025-${selectedMonth + 1}`,
+        range: `${year}-${selectedMonth + 1}`,
         layoutScheme: 'month'
       }
     ],
@@ -115,7 +102,7 @@ export default function SupersetPluginChartSafety(props: SupersetPluginChartSafe
       {
         type: 'custom',
         coordinateSystem: 'calendar',
-        renderItem: function (params, api) {
+        renderItem: function (params: any, api: any) {
           const cellPoint = api.coord(api.value(0));
           const cellWidth: number = (params.coordSys as any).cellWidth;
           const cellHeight: number = (params.coordSys as any).cellHeight;
@@ -160,11 +147,13 @@ export default function SupersetPluginChartSafety(props: SupersetPluginChartSafe
               {
                 type: 'text',
                 style: {
-                  x: x - 15,
-                  y: y - 15,
-                  // text: time.format('dd', cellPoint, 'en'),
-                  text: new Date(api.value(0)).getDate(),
+                  x,
+                  y: y + 3,
+                  // text: time.format(cellPoint, 'dd', false),
+                  text: new Date(api.value(0)).getDate().toString().padStart(2, '0'),
                   fill: 'black',
+                  align: 'center',
+                  verticalAlign: 'middle',
                   textFont: api.font({ fontSize: 30 })
                 }
               }
@@ -174,7 +163,7 @@ export default function SupersetPluginChartSafety(props: SupersetPluginChartSafe
           return group;
         },
         dimensions: [undefined, { type: 'ordinal' }],
-        data: filteredData
+        data: mapDataToChartDataFormat(data as { date: number, incidents: number, risks: number }[])
       }
     ]
   };
@@ -193,6 +182,19 @@ export default function SupersetPluginChartSafety(props: SupersetPluginChartSafe
               {month}
             </Select.Option>
           ))}
+        </Select>
+        <Select
+          value={year}
+          onChange={setYear}
+          style={{ width: 120 }}
+        >
+          {
+            Array.from({ length: 11 }, (_, i) => new Date().getFullYear() - 5 + i).map((year, index) => (
+              <Select.Option key={index} value={year}>
+                {year}
+              </Select.Option>
+            ))
+          }
         </Select>
       </div>
       <div className="chart-container">
