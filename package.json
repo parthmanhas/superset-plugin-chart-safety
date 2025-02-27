@@ -1,6 +1,6 @@
 {
   "name": "superset-plugin-chart-safety",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Superset Plugin Chart Safety",
   "sideEffects": false,
   "main": "lib/index.js",
