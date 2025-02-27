@@ -40,7 +40,6 @@ const Styles = styled.div<StylesProps>`
 
   .chart-container {
     height: 100%;
-    min-height: 500px;
   }
 `;
 
@@ -53,6 +52,8 @@ export default function SupersetPluginChartSafety(props: SupersetPluginChartSafe
   const { data, height, width } = props;
   const [year, setYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+
+  console.log(height, width)
 
   const mapDataToChartDataFormat = (data: { date: number, incidents: number, risks: number }[]) => {
     const res: [number, { incidents: number, risks: number }][] = [];
@@ -83,12 +84,12 @@ export default function SupersetPluginChartSafety(props: SupersetPluginChartSafe
       {
         left: 'center',
         top: 'center',
-        cellSize: [70, 70],
+        cellSize: [Math.min(width / 7, (height - 100) / 6), Math.min(width / 7, (height - 100) / 6)], // Dynamic cell size
         yearLabel: { show: false },
         orient: 'vertical',
         dayLabel: {
           firstDay: 1,
-          margin: 10,
+          margin: 5, // Reduced margin
           nameMap: ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
         },
         monthLabel: {
@@ -106,6 +107,7 @@ export default function SupersetPluginChartSafety(props: SupersetPluginChartSafe
           const cellPoint = api.coord(api.value(0));
           const cellWidth: number = (params.coordSys as any).cellWidth;
           const cellHeight: number = (params.coordSys as any).cellHeight;
+          const padding = Math.min(cellWidth, cellHeight) * 0.05; // 5% padding
 
           const { incidents, risks } = api.value(1) as any;
 
@@ -116,6 +118,8 @@ export default function SupersetPluginChartSafety(props: SupersetPluginChartSafe
           const upperColor = incidents > 0 ? '#E35A5A' : '#66FF99';
           const lowerColor = risks > 0 ? '#CFEC31' : '#66FF99';
           const [x, y] = cellPoint;
+          
+          const rectHeight = (cellHeight - padding * 3) / 2; // Divide cell height into two parts with padding
 
           const group: CustomSeriesRenderItemReturn = {
             type: "group",
@@ -123,10 +127,10 @@ export default function SupersetPluginChartSafety(props: SupersetPluginChartSafe
               {
                 type: 'rect',
                 shape: {
-                  x: x - (cellWidth / 2) + 2.5,
-                  y: y - (cellHeight / 2) + 2.5,
-                  width: cellWidth - 5,
-                  height: 30
+                  x: x - (cellWidth / 2) + padding,
+                  y: y - (cellHeight / 2) + padding,
+                  width: cellWidth - (padding * 2),
+                  height: rectHeight
                 },
                 style: {
                   fill: upperColor
@@ -135,10 +139,10 @@ export default function SupersetPluginChartSafety(props: SupersetPluginChartSafe
               {
                 type: 'rect',
                 shape: {
-                  x: x - (cellWidth / 2) + 2.5,
-                  y: y + 3,
-                  width: cellWidth - 5,
-                  height: 30
+                  x: x - (cellWidth / 2) + padding,
+                  y: y - (cellHeight / 2) + rectHeight + (padding * 2),
+                  width: cellWidth - (padding * 2),
+                  height: rectHeight
                 },
                 style: api.style({
                   fill: lowerColor,
@@ -148,13 +152,14 @@ export default function SupersetPluginChartSafety(props: SupersetPluginChartSafe
                 type: 'text',
                 style: {
                   x,
-                  y: y + 3,
-                  // text: time.format(cellPoint, 'dd', false),
+                  y,
                   text: new Date(api.value(0)).getDate().toString().padStart(2, '0'),
                   fill: 'black',
                   align: 'center',
                   verticalAlign: 'middle',
-                  textFont: api.font({ fontSize: 30 })
+                  textFont: api.font({ 
+                    fontSize: Math.min(cellWidth, cellHeight) * 0.4 
+                  })
                 }
               }
             ]

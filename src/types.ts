@@ -42,3 +42,6 @@ export type SupersetPluginChartSafetyProps = SupersetPluginChartSafetyStylesProp
     data: TimeseriesDataRecord[] | { date: number, incidents: number, risks: number }[];
     // add typing here for the props you pass in from transformProps.ts!
   };
+
+
+  
